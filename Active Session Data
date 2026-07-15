@@ -1,0 +1,33 @@
+SELECT
+    u.USERID,
+    u.FIRSTNAME,
+    u.SURNAME,
+    s.SESSIONID,
+    s.LOCATIONID,
+    CASE s.DAYOFWEEK
+        WHEN 1 THEN 'Sunday'
+        WHEN 2 THEN 'Monday'
+        WHEN 3 THEN 'Tuesday'
+        WHEN 4 THEN 'Wednesday'
+        WHEN 5 THEN 'Thursday'
+        WHEN 6 THEN 'Friday'
+        WHEN 7 THEN 'Saturday'
+    END AS day_of_week,
+    CONVERT(VARCHAR(8), DATEADD(SECOND, s.STARTTIME, 0), 108) AS start_time_readable,
+    CONVERT(VARCHAR(8), DATEADD(SECOND, s.ENDTIME, 0), 108) AS end_time_readable,
+    CAST(s.LENGTH / 60 AS INT) AS length_minutes,
+    s.LABEL,
+    s.RGB,
+    CONVERT(VARCHAR(10), s.STARTDATE, 103) AS start_date_readable,
+    CONVERT(VARCHAR(10), s.ENDDATE, 103) AS end_date_readable,
+    CONVERT(VARCHAR(19), s.CREATED, 121) AS created_readable,
+    CONVERT(VARCHAR(19), s.UPDATED, 121) AS updated_readable
+FROM
+    dbo.SESSIONS s
+INNER JOIN
+    dbo.USERS u ON s.USERID = u.USERID
+WHERE
+    s.RECORDSTATUS = 1
+    AND u.GROUPCODE IN (3, 4)
+ORDER BY
+    u.USERID, s.DAYOFWEEK, s.STARTTIME;

@@ -1,0 +1,30 @@
+-- ============================================================================
+-- FROM 1 JAN 2026 ONWARDS — HOURS DELIVERED & DNA PER WEEK
+-- ============================================================================
+-- HoursDelivered = Completed appointment time (codes 4,5,12,13 only)
+-- HoursLostToDNA = Appointments where patient did not attend (code 10)
+--
+-- Week calculated from start of FY (1 Jan 2026) to current date
+-- APPOINTMENTLENGTH is in SECONDS, so /3600 for hours.
+-- Cancelled appointments are excluded entirely.
+-- ============================================================================
+SELECT
+    u.USERID,
+    u.FIRSTNAME,
+    u.SURNAME,
+    DATEADD(WEEK, DATEDIFF(WEEK, 0, a.APPOINTMENTDATE), 0) AS WeekStart,
+    'Week ' + CAST(DATEDIFF(WEEK, CAST('2026-01-01' AS DATE), DATEADD(WEEK, DATEDIFF(WEEK, 0, a.APPOINTMENTDATE), 0)) + 1 AS VARCHAR(3)) AS Week,
+    ROUND(SUM(CASE WHEN a.APPOINTMENTCODE IN (4,5,12,13) THEN a.APPOINTMENTLENGTH ELSE 0 END) / 3600.0, 1) AS HoursDelivered,
+    ROUND(SUM(CASE WHEN a.APPOINTMENTCODE = 10 THEN a.APPOINTMENTLENGTH ELSE 0 END) / 3600.0, 1) AS HoursLostToDNA
+FROM dbo.APPOINTMENTS a
+LEFT JOIN dbo.CANCELLEDAPPOINTMENTS ca ON ca.APPOINTMENTID = a.RECORDID
+INNER JOIN dbo.USERS u ON u.USERID = a.USERID
+WHERE a.RECORDSTATUS = 1
+  AND a.PATIENTS = 1
+  AND ca.APPOINTMENTID IS NULL
+  AND a.APPOINTMENTCODE IN (4,5,12,13,10)
+  AND a.APPOINTMENTDATE >= '2026-01-01'
+  AND u.PROVIDERNO IS NOT NULL AND u.PROVIDERNO <> ''
+  AND u.GROUPCODE NOT IN (10, 28)
+GROUP BY u.USERID, u.FIRSTNAME, u.SURNAME, DATEDIFF(WEEK, 0, a.APPOINTMENTDATE), DATEADD(WEEK, DATEDIFF(WEEK, 0, a.APPOINTMENTDATE), 0)
+ORDER BY u.USERID, DATEADD(WEEK, DATEDIFF(WEEK, 0, a.APPOINTMENTDATE), 0);

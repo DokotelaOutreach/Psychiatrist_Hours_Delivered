@@ -1,0 +1,29 @@
+-- ============================================================================
+-- FROM 1 JAN 2026 ONWARDS — HOURS DELIVERED & DNA PER CALENDAR MONTH
+-- ============================================================================
+-- HoursDelivered = Completed appointment time (codes 4,5,12,13 only)
+-- HoursLostToDNA = Appointments where patient did not attend (code 10)
+--
+-- APPOINTMENTLENGTH is in SECONDS, so /3600 for hours.
+-- Cancelled appointments are excluded entirely.
+-- ============================================================================
+SELECT
+    u.USERID,
+    u.FIRSTNAME,
+    u.SURNAME,
+    DATEFROMPARTS(YEAR(a.APPOINTMENTDATE), MONTH(a.APPOINTMENTDATE), 1) AS MonthStart,
+    FORMAT(DATEFROMPARTS(YEAR(a.APPOINTMENTDATE), MONTH(a.APPOINTMENTDATE), 1), 'MMM yy') AS Month,
+    ROUND(SUM(CASE WHEN a.APPOINTMENTCODE IN (4,5,12,13) THEN a.APPOINTMENTLENGTH ELSE 0 END) / 3600.0, 1) AS HoursDelivered,
+    ROUND(SUM(CASE WHEN a.APPOINTMENTCODE = 10 THEN a.APPOINTMENTLENGTH ELSE 0 END) / 3600.0, 1) AS HoursLostToDNA
+FROM dbo.APPOINTMENTS a
+LEFT JOIN dbo.CANCELLEDAPPOINTMENTS ca ON ca.APPOINTMENTID = a.RECORDID
+INNER JOIN dbo.USERS u ON u.USERID = a.USERID
+WHERE a.RECORDSTATUS = 1
+  AND a.PATIENTS = 1
+  AND ca.APPOINTMENTID IS NULL
+  AND a.APPOINTMENTCODE IN (4,5,12,13,10)
+  AND a.APPOINTMENTDATE >= '2026-01-01'
+  AND u.PROVIDERNO IS NOT NULL AND u.PROVIDERNO <> ''
+  AND u.GROUPCODE NOT IN (10, 28)
+GROUP BY u.USERID, u.FIRSTNAME, u.SURNAME, YEAR(a.APPOINTMENTDATE), MONTH(a.APPOINTMENTDATE)
+ORDER BY u.USERID, YEAR(a.APPOINTMENTDATE), MONTH(a.APPOINTMENTDATE);
